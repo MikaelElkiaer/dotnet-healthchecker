@@ -4,10 +4,8 @@ internal static partial class Program
     {
         try
         {
-            if (TryGetAbsoluteUri(args, out Uri? uri) || TryMergeUris(uri, out uri))
-                return await CreateHttpClient().GetAndValidate(uri!);
-
-            Console.Error.WriteLine("A valid URI must be provided");
+            if (TryGetUri(args, out Uri uri) && TryConstructUri(uri, out uri))
+                return await CreateHttpClient().GetAndValidate(uri);
         }
         catch (Exception ex)
         {
@@ -18,28 +16,34 @@ internal static partial class Program
         return 1;
     }
 
-    private static bool TryGetAbsoluteUri(string[] args, out Uri? uri)
+    private static bool TryGetUri(string[] args, out Uri uri)
     {
-        if (args.Length > 1)
-            return Uri.TryCreate(args[1], UriKind.RelativeOrAbsolute, out uri) && uri.IsAbsoluteUri;
+        if (args.Length > 1 && Uri.TryCreate(args[1], UriKind.RelativeOrAbsolute, out uri!))
+            return true;
 
-        uri = null;
+        uri = new Uri("/");
+        Console.Error.WriteLine("A valid URI must be given as argument");
         return false;
     }
 
-    private static bool TryMergeUris(Uri? relativeUri, out Uri? uri)
+    private static bool TryConstructUri(Uri pathUri, out Uri uri)
     {
-        var baseUri = Environment.GetEnvironmentVariable("ASPNETCORE_URLS")?
-            .Split(';', StringSplitOptions.RemoveEmptyEntries)
-            .Select(u => Uri.TryCreate(System.Text.RegularExpressions.Regex.Replace(u, @"[+%]+", "localhost"), UriKind.Absolute, out var uri) ? uri : null)
-            .FirstOrDefault(u => u is not null && u.Scheme == "http");
-
-        if (baseUri is null)
-            uri = relativeUri;
+        if (pathUri.IsAbsoluteUri)
+            uri = pathUri;
         else
-            return Uri.TryCreate(baseUri, relativeUri, out uri);
+        {
+            var baseUri = Environment.GetEnvironmentVariable("ASPNETCORE_URLS")?
+                .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .Select(u => Uri.TryCreate(System.Text.RegularExpressions.Regex.Replace(u, @"[+%]+", "localhost"), UriKind.Absolute, out var uri) ? uri : null)
+                .FirstOrDefault(u => u is not null && u.Scheme == "http");
 
-        return uri is not null;
+            if (baseUri is null)
+                uri = pathUri;
+            else
+                return Uri.TryCreate(baseUri, pathUri, out uri!);
+        }
+
+        return true;
     }
 
     private static HttpClient CreateHttpClient()
