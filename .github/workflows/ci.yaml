@@ -11,10 +11,10 @@ jobs:
       - name: Setup
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '6.0'
+          dotnet-version: "6.0"
       - name: Publish
         run: dotnet publish --configuration Release --runtime linux-x64 --no-self-contained --output out
-      - name: Checksum 
+      - name: Checksum
         uses: jmgilman/actions-generate-checksum@v1
         with:
           patterns: |
@@ -25,4 +25,4 @@ jobs:
         with:
           files: |
             checksum.txt
-            out/* 
+            out/*

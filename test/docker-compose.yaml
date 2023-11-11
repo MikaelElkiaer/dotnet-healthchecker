@@ -1,0 +1,18 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: test/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=${HC_ENV:-http://+:8080}
+    healthcheck:
+      test: ["CMD", "dotnet", "healthchecker.dll", "--", "${HC_ARG}"]
+      interval: 1s
+      retries: 5
+    image: dotnet-healthchecker
+  test:
+    command: ["sh", "-c", "exit 0"]
+    depends_on:
+      app:
+        condition: service_healthy
+    image: alpine
