@@ -38,6 +38,8 @@ jobs:
 
           cat NOTES.md >> $GITHUB_STEP_SUMMARY
       - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
         if: github.ref_type == 'tag'
         run: |
           gh release create ${{ github.ref_name }} --notes-file NOTES.md out/healthchecker checksum.txt
