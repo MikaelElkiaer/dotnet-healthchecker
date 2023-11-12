@@ -23,14 +23,14 @@ jobs:
           docker build --file docker/Dockerfile --output out --target output .
       - name: Checksum
         run: |
-          sha256sum out/healthchecker --zero | awk '{print $1}' > sha256.txt
+          sha256sum out/healthchecker > checksum.txt
       - name: Generate notes
         run: |
           cat <<EOF | tee NOTES.md
           To use this release, add the following to a Dockerfile:
 
           \`\`\`Dockerfile
-          ADD --checksum=sha256:$(< sha256.txt) https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/healthchecker /
+          ADD --checksum=sha256:$(cat checksum.txt | awk '{print $1}') https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/healthchecker /
           \`\`\`
 
           See [readme](https://github.com/mikaelelkiaer/dotnet-healthchecker) for more information.
@@ -40,4 +40,4 @@ jobs:
       - name: Release
         if: github.ref_type == 'tag'
         run: |
-          gh release create ${{ github.ref_name }} --notes-file NOTES.md out/healthchecker
+          gh release create ${{ github.ref_name }} --notes-file NOTES.md out/healthchecker checksum.txt
