@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-function build() {
-  docker compose build
-}
-
 function test() {
 	export VAR_ARG="$1"
 	export VAR_ENV="$2"
@@ -14,7 +10,6 @@ function test() {
   fi
 }
 
-build
 test "http://localhost:8080/healthz" ""
 test "/healthz" ""
 test "/healthz" "http://+:80"

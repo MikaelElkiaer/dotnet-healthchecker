@@ -11,35 +11,43 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        targetFramework: ["6.0", "8.0"]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Test
-        run: |
-          ./run.bash
-        working-directory: test
       - name: Build
         run: |
-          docker build --file docker/Dockerfile --output out --target output .
+          docker build --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }} --file docker/Dockerfile --output ./out --target output .
+      - name: Test
+        run: |
+          docker compose build --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }}
+          ./run.bash
+        working-directory: test
       - name: Checksum
         run: |
-          sha256sum out/healthchecker > checksum.txt
+          sha256sum out/healthchecker > ./out/checksum.txt
+  release:
+    if: github.ref_type == 'tag'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
       - name: Generate notes
         run: |
-          cat <<EOF | tee NOTES.md
+          cat <<EOF | tee ./NOTES.md
           To use this release, add the following to a Dockerfile:
 
           \`\`\`Dockerfile
-          ADD --checksum=sha256:$(cat checksum.txt | awk '{print $1}') https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/healthchecker /
+          ADD --checksum=sha256:$(cat ./out/checksum.txt | awk '{print $1}') https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/healthchecker /
           \`\`\`
 
           See [readme](https://github.com/mikaelelkiaer/dotnet-healthchecker) for more information.
           EOF
 
-          cat NOTES.md >> $GITHUB_STEP_SUMMARY
-      - name: Release
+          cat ./NOTES.md >> $GITHUB_STEP_SUMMARY
+      - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
-        if: github.ref_type == 'tag'
         run: |
           gh release create ${{ github.ref_name }} --notes-file NOTES.md out/healthchecker checksum.txt
