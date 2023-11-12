@@ -16,7 +16,7 @@ jobs:
         targetFramework: ["6.0", "8.0"]
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Build
         run: |
           docker build --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }} --file docker/Dockerfile --output ./release --target output .
@@ -42,6 +42,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
       - name: Download artifacts
         uses: actions/download-artifact@v3
         with:
