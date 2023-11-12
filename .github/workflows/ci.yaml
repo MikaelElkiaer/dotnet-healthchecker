@@ -1,6 +1,12 @@
 name: Main
 
-on: push
+on:
+  push:
+    paths:
+      - .github/workflows/ci.yaml
+      - docker/**
+      - src/**
+      - test/**
 
 jobs:
   build:
