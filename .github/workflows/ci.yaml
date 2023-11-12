@@ -11,35 +11,74 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        targetFramework: ["6.0", "8.0"]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Test
-        run: |
-          ./run.bash
-        working-directory: test
       - name: Build
         run: |
-          docker build --file docker/Dockerfile --output out --target output .
+          docker build --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }} --file docker/Dockerfile --output ./release --target output .
+      - name: Test
+        run: |
+          docker compose build --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }}
+          ./run.bash
+        working-directory: test
       - name: Checksum
         run: |
-          sha256sum out/healthchecker > checksum.txt
+          sha256sum ./release/healthchecker > ./release/healthchecker.sha256sum
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.targetFramework }}
+          path: |
+            ./release/healthchecker
+            ./release/healthchecker.sha256sum
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: releases
       - name: Generate notes
         run: |
-          cat <<EOF | tee NOTES.md
-          To use this release, add the following to a Dockerfile:
+          echo -e "# Release notes\n\n" >> $GITHUB_STEP_SUMMARY
 
-          \`\`\`Dockerfile
-          ADD --checksum=sha256:$(cat checksum.txt | awk '{print $1}') https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/healthchecker /
-          \`\`\`
+          cat <<EOF | tee ../NOTES.md
+          See [readme](https://github.com/mikaelelkiaer/dotnet-healthchecker) for usage details.
 
-          See [readme](https://github.com/mikaelelkiaer/dotnet-healthchecker) for more information.
           EOF
 
-          cat NOTES.md >> $GITHUB_STEP_SUMMARY
-      - name: Release
+          for r in *; do
+          cat <<EOF | tee --append ../NOTES.md
+
+          ## .NET $r
+
+          \`\`\`Dockerfile
+          ADD --checksum=sha256:$(cat ./$r/healthchecker.sha256sum | awk '{print $1}') https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/healthchecker_net${r/./} /healthchecker
+          \`\`\`
+          EOF
+          done
+
+          cat ../NOTES.md >> $GITHUB_STEP_SUMMARY
+        working-directory: releases
+      - name: Prepare assets
+        run: |
+          mkdir -p ../assets
+          for r in *; do
+            cp $r/healthchecker ../assets/healthchecker_net${r/./}
+            cp $r/healthchecker.sha256sum ../assets/healthchecker_net${r/./}.sha256sum
+          done
+
+          cd ../assets
+          echo -e "# Assets\n\n$(ls -l *)" >> $GITHUB_STEP_SUMMARY
+        working-directory: releases
+      - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
         if: github.ref_type == 'tag'
         run: |
-          gh release create ${{ github.ref_name }} --notes-file NOTES.md out/healthchecker checksum.txt
+          gh release create ${{ github.ref_name }} --notes-file NOTES.md $(ls assets/*)
