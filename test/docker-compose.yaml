@@ -5,7 +5,7 @@ services:
       dockerfile: docker/Dockerfile
       target: test-app
     environment:
-      - ASPNETCORE_URLS=${VAR_ENV:-http://+:8080}
+      - ASPNETCORE_URLS=${VAR_ENV}
     healthcheck:
       test: ["CMD", "/healthchecker", "--", "${VAR_ARG}"]
       interval: 1s
