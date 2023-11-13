@@ -18,7 +18,7 @@ internal static partial class Program
 
     private static bool TryGetUri(string[] args, out Uri uri)
     {
-        if (args.Length > 1 && Uri.TryCreate(args[1], UriKind.RelativeOrAbsolute, out uri!))
+        if (args.Length > 0 && Uri.TryCreate(args[0], UriKind.RelativeOrAbsolute, out uri!))
             return true;
 
         uri = new Uri("/");
