@@ -5,7 +5,8 @@ WORKDIR /src
 COPY src/*.csproj .
 RUN dotnet restore -p:TargetFramework=net${TARGET_FRAMEWORK}
 COPY src .
-RUN dotnet publish --configuration Release --no-restore --output /out -p:TargetFramework=net${TARGET_FRAMEWORK}
+RUN dotnet publish --configuration Release --no-restore --output /out -p:TargetFramework=net${TARGET_FRAMEWORK} \
+    && chmod +x /out/healthchecker
 
 FROM scratch AS output
 COPY --from=build /out /
@@ -20,7 +21,7 @@ RUN dotnet publish --configuration Release --no-restore --output /out /p:TargetF
 
 FROM mcr.microsoft.com/dotnet/sdk:${TARGET_FRAMEWORK}-alpine AS test-app
 WORKDIR /app
-COPY --from=build /out/healthchecker /
+COPY --from=build /out/healthchecker /usr/local/bin/healthchecker
 COPY --from=test-app-build /out .
 
 ENTRYPOINT ["dotnet", "aspnet-app.dll"]
