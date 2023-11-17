@@ -13,19 +13,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        runtime: ["linux-x64", "linux-musl-x64"]
         targetFramework: ["6.0", "8.0"]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Build
         run: |
-          docker build --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }} --file docker/Dockerfile --output ./release --target output .
+          docker build --build-arg RUNTIME=${{ matrix.runtime }} --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }} --file docker/Dockerfile --output ./release --target output .
       - name: Install bats
         run: |
           sudo apt install bats
       - name: Test
         run: |
-          docker compose build --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }}
+          docker compose build --build-arg RUNTIME=${{ matrix.runtime }} --build-arg RUNTIME_IMAGE_SUFFIX=${{ matrix.runtime == 'linux-musl-x64' && '-alpine' || '' }} --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }}
           bats tests.bats
         working-directory: test
       - name: Checksum
@@ -34,7 +35,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ matrix.targetFramework }}
+          name: ${{ matrix.targetFramework }}-${{ matrix.runtime }}
           path: |
             ./release/healthchecker
             ./release/healthchecker.sha256sum
@@ -63,7 +64,7 @@ jobs:
           ## .NET $r
 
           \`\`\`Dockerfile
-          ADD --checksum=sha256:$(cat ./$r/healthchecker.sha256sum | awk '{print $1}') https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/healthchecker_net${r/./} /healthchecker
+          ADD --checksum=sha256:$(cat ./$r/healthchecker.sha256sum | awk '{print $1}') https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/healthchecker-net${r/./} /healthchecker
           \`\`\`
           EOF
           done
@@ -74,8 +75,8 @@ jobs:
         run: |
           mkdir -p ../assets
           for r in *; do
-            cp $r/healthchecker ../assets/healthchecker_net${r/./}
-            cp $r/healthchecker.sha256sum ../assets/healthchecker_net${r/./}.sha256sum
+            cp $r/healthchecker ../assets/healthchecker-net${r/./}
+            cp $r/healthchecker.sha256sum ../assets/healthchecker-net${r/./}.sha256sum
           done
 
           cd ../assets
