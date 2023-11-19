@@ -39,3 +39,27 @@ teardown() {
 	export VAR_ENV="http://+:80;http://+:8080"
 	docker compose run --rm test
 }
+
+@test "Relative URI and default listen" {
+  export VAR_ARG="/healthz"
+	export VAR_ENV=
+	docker compose run --rm test
+}
+
+@test "Default URI and default listen" {
+  export VAR_ARG=
+	export VAR_ENV=
+	docker compose run --rm test
+}
+
+@test "Default URI and listen port 8080" {
+  export VAR_ARG=
+	export VAR_ENV="http://+8080"
+	docker compose run --rm test
+}
+
+@test "Default URI and listen port 80" {
+  export VAR_ARG=
+	export VAR_ENV="http://+80"
+	docker compose run --rm test
+}

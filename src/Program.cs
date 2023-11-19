@@ -1,11 +1,16 @@
 internal static partial class Program
 {
+    private static Uri DefaultBaseUri = new Uri("http://localhost:8080", UriKind.Absolute);
+    private static Uri DefaultPath = new Uri("/healthz", UriKind.Relative);
+
     private static async Task<int> Main(string[] args)
     {
         try
         {
             if (TryGetUri(args, out Uri uri) && TryConstructUri(uri, out uri))
                 return await CreateHttpClient().GetAndValidate(uri);
+            else
+                Console.Error.WriteLine("A valid URI could not be constructed");
         }
         catch (Exception ex)
         {
@@ -18,11 +23,10 @@ internal static partial class Program
 
     private static bool TryGetUri(string[] args, out Uri uri)
     {
-        if (args.Length > 0 && Uri.TryCreate(args[0], UriKind.RelativeOrAbsolute, out uri!))
+        uri = DefaultPath;
+        if (args.Length == 0 || string.IsNullOrWhiteSpace(args[0]) || Uri.TryCreate(args[0], UriKind.RelativeOrAbsolute, out uri!))
             return true;
 
-        uri = new Uri("/");
-        Console.Error.WriteLine("A valid URI must be given as argument");
         return false;
     }
 
@@ -37,10 +41,7 @@ internal static partial class Program
                 .Select(u => Uri.TryCreate(System.Text.RegularExpressions.Regex.Replace(u, @"[+%]+", "localhost"), UriKind.Absolute, out var uri) ? uri : null)
                 .FirstOrDefault(u => u is not null && u.Scheme == "http");
 
-            if (baseUri is null)
-                uri = pathUri;
-            else
-                return Uri.TryCreate(baseUri, pathUri, out uri!);
+            return Uri.TryCreate(baseUri ?? DefaultBaseUri, pathUri, out uri!);
         }
 
         return true;
