@@ -7,9 +7,11 @@ services:
     environment:
       - ASPNETCORE_URLS=${VAR_ENV}
     healthcheck:
-      test: ["CMD", "healthchecker", "${VAR_ARG}"]
-      interval: 1s
+      interval: 200ms
       retries: 10
+      test: ["CMD", "healthchecker", "${VAR_ARG}"]
+      timeout: 500ms
+      start_period: 1s
     image: dotnet-healthchecker
   test:
     command: ["sh", "-c", "exit 0"]
