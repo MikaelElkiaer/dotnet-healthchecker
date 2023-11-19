@@ -24,7 +24,7 @@ jobs:
           docker build --build-arg RUNTIME=${{ matrix.runtime }} --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }} --file docker/Dockerfile --output ./release --target output .
       - name: Install bats
         run: |
-          sudo apt install bats
+          npm install --global bats
       - name: Test
         env:
           RUNTIME: ${{ matrix.runtime }}
