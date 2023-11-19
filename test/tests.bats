@@ -4,76 +4,105 @@ teardown() {
   docker compose down &> /dev/null
 }
 
-@test "Absolute URI and listen port 80" {
-  export VAR_ARG="http://localhost:80/healthz"
-  export VAR_ENV="http://+:80"
+@test "Absolute URI and urls port 80" {
+  export ARG_PATH="http://localhost:80/healthz"
+  export ENV_URLS="http://+:80"
   docker compose up --detach app &> /dev/null
   docker compose run --rm test
 }
 
-@test "Absolute URI and listen port 8080" {
-  export VAR_ARG="http://localhost:8080/healthz"
-  export VAR_ENV="http://+:8080"
+@test "Absolute URI and urls port 8080" {
+  export ARG_PATH="http://localhost:8080/healthz"
+  export ENV_URLS="http://+:8080"
   docker compose up --detach app &> /dev/null
   docker compose run --rm test
 }
 
-@test "Relative URI and listen port 80" {
-  export VAR_ARG="/healthz"
-  export VAR_ENV="http://+:80"
+@test "Absolute URI and port 80" {
+  export ARG_PATH="http://localhost:80/healthz"
+  export ENV_PORTS="80"
   docker compose up --detach app &> /dev/null
   docker compose run --rm test
 }
 
-@test "Relative URI and listen port 8080" {
-  export VAR_ARG="/healthz"
-  export VAR_ENV="http://+:8080"
+@test "Absolute URI and port 8080" {
+  export ARG_PATH="http://localhost:8080/healthz"
+  export ENV_PORTS="8080"
   docker compose up --detach app &> /dev/null
   docker compose run --rm test
 }
 
-@test "Relative URI and listen ports 8080 and 80" {
-  export VAR_ARG="/healthz"
-  export VAR_ENV="http://+:8080;http://+:80"
+@test "Relative URI and urls port 80" {
+  export ARG_PATH="/healthz"
+  export ENV_URLS="http://+:80"
   docker compose up --detach app &> /dev/null
   docker compose run --rm test
 }
 
-@test "Relative URI and listen ports 80 and 8080" {
-  export VAR_ARG="/healthz"
-  export VAR_ENV="http://+:80;http://+:8080"
+@test "Relative URI and urls port 8080" {
+  export ARG_PATH="/healthz"
+  export ENV_URLS="http://+:8080"
   docker compose up --detach app &> /dev/null
   docker compose run --rm test
 }
 
-@test "Default URI and listen port 8080" {
-  export VAR_ARG=
-  export VAR_ENV="http://+:8080"
+@test "Relative URI and urls ports 8080 and 80" {
+  export ARG_PATH="/healthz"
+  export ENV_URLS="http://+:8080;http://+:80"
   docker compose up --detach app &> /dev/null
   docker compose run --rm test
 }
 
-@test "Default URI and listen port 80" {
-  export VAR_ARG=
-  export VAR_ENV="http://+:80"
+@test "Relative URI and urls ports 80 and 8080" {
+  export ARG_PATH="/healthz"
+  export ENV_URLS="http://+:80;http://+:8080"
   docker compose up --detach app &> /dev/null
   docker compose run --rm test
 }
 
-# INFO: Default listen port is only available since .NET 8.0
-
-# bats test_tags=net80
-@test "Relative URI and default listen" {
-  export VAR_ARG="/healthz"
-  export VAR_ENV=
+@test "Default URI and urls port 8080" {
+  export ENV_URLS="http://+:8080"
   docker compose up --detach app &> /dev/null
   docker compose run --rm test
 }
 
-# bats test_tags=net80
-@test "Default URI and default listen" {
-  export VAR_ARG=
-  export VAR_ENV=
+@test "Default URI and urls port 80" {
+  export ENV_URLS="http://+:80"
+  docker compose up --detach app &> /dev/null
+  docker compose run --rm test
+}
+
+@test "Relative URI and default urls" {
+  export ARG_PATH="/healthz"
+  docker compose up --detach app &> /dev/null
+  docker compose run --rm test
+}
+
+@test "Default URI and default urls" {
+  docker compose up --detach app &> /dev/null
+  docker compose run --rm test
+}
+
+@test "Default URI and port 80" {
+  export ENV_PORTS="80"
+  docker compose up --detach app &> /dev/null
+  docker compose run --rm test
+}
+
+@test "Default URI and port 8080" {
+  export ENV_PORTS="8080"
+  docker compose up --detach app &> /dev/null
+  docker compose run --rm test
+}
+
+@test "Default URI and ports 80 and 8080" {
+  export ENV_PORTS="80;8080"
+  docker compose up --detach app &> /dev/null
+  docker compose run --rm test
+}
+
+@test "Default URI and ports 8080 and 80" {
+  export ENV_PORTS="8080;80"
   docker compose up --detach app &> /dev/null
   docker compose run --rm test
 }

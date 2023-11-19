@@ -1,8 +1,5 @@
 internal static partial class Program
 {
-    private static Uri DefaultBaseUri = new Uri("http://localhost:8080", UriKind.Absolute);
-    private static Uri DefaultPath = new Uri("/healthz", UriKind.Relative);
-
     private static async Task<int> Main(string[] args)
     {
         try
@@ -23,11 +20,12 @@ internal static partial class Program
 
     private static bool TryGetUri(string[] args, out Uri uri)
     {
-        uri = DefaultPath;
-        if (args.Length == 0 || string.IsNullOrWhiteSpace(args[0]) || Uri.TryCreate(args[0], UriKind.RelativeOrAbsolute, out uri!))
-            return true;
+        if (args.Length >= 0 && !string.IsNullOrWhiteSpace(args[0]) && !Uri.TryCreate(args[0], UriKind.RelativeOrAbsolute, out uri!))
+            return false;
+        else
+            uri = DefaultPath;
 
-        return false;
+        return true;
     }
 
     private static bool TryConstructUri(Uri pathUri, out Uri uri)
@@ -37,15 +35,32 @@ internal static partial class Program
         else
         {
             var baseUri = Environment.GetEnvironmentVariable("ASPNETCORE_URLS")?
-                .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .Select(u => Uri.TryCreate(System.Text.RegularExpressions.Regex.Replace(u, @"[+%]+", "localhost"), UriKind.Absolute, out var uri) ? uri : null)
                 .FirstOrDefault(u => u is not null && u.Scheme == "http");
 
-            return Uri.TryCreate(baseUri ?? DefaultBaseUri, pathUri, out uri!);
+            if (baseUri is null)
+            {
+                var port = Environment.GetEnvironmentVariable("ASPNETCORE_HTTP_PORTS")?
+                  .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                  .FirstOrDefault();
+                baseUri = DefaultBaseUri(port ?? DefaultPort);
+            }
+
+            return Uri.TryCreate(baseUri, pathUri, out uri!);
         }
 
         return true;
     }
+
+    private static string DefaultPort
+        => Environment.Version.Major >= 8 ? "8080" : "5000";
+
+    private static Uri DefaultBaseUri(string port)
+        => new Uri($"http://localhost:{port}", UriKind.Absolute);
+
+    private static Uri DefaultPath
+        => new Uri("/healthz", UriKind.Relative);
 
     private static HttpClient CreateHttpClient()
     {
