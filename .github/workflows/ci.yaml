@@ -12,6 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         runtime: ["linux-x64", "linux-musl-x64"]
         targetFramework: ["6.0", "8.0"]
