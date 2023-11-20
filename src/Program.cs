@@ -2,9 +2,10 @@ internal static partial class Program
 {
     private static async Task<int> Main(string[] args)
     {
+        Uri? uri = null;
         try
         {
-            if (TryGetUri(args, out Uri uri) && TryConstructUri(uri, out uri))
+            if (TryConstructUri(args, out uri))
                 return await CreateHttpClient().GetAndValidate(uri);
             else
                 Console.Error.WriteLine("A valid URI could not be constructed");
@@ -12,25 +13,18 @@ internal static partial class Program
         catch (Exception ex)
         {
             var message = ex.InnerException?.Message ?? ex.Message;
-            Console.Error.WriteLine(message);
+            Console.Error.WriteLine($"Failed unexpectedly: {message}");
         }
+
+        if (uri is not null)
+            Console.Error.WriteLine($"URI: {uri}");
 
         return 1;
     }
 
-    private static bool TryGetUri(string[] args, out Uri uri)
+    private static bool TryConstructUri(string[] args, out Uri uri)
     {
-        if (args.Length >= 0 && !string.IsNullOrWhiteSpace(args[0]) && !Uri.TryCreate(args[0], UriKind.RelativeOrAbsolute, out uri!))
-            return false;
-        else
-            uri = DefaultPath;
-
-        return true;
-    }
-
-    private static bool TryConstructUri(Uri pathUri, out Uri uri)
-    {
-        if (pathUri.IsAbsoluteUri)
+        if (TryGetUri(args, out Uri pathUri) && pathUri.IsAbsoluteUri)
             uri = pathUri;
         else
         {
@@ -53,6 +47,16 @@ internal static partial class Program
         return true;
     }
 
+    private static bool TryGetUri(string[] args, out Uri uri)
+    {
+        if (args.Length > 0 && !string.IsNullOrWhiteSpace(args[0]) && !Uri.TryCreate(args[0], UriKind.RelativeOrAbsolute, out uri!))
+            return false;
+        else
+            uri = DefaultPath;
+
+        return true;
+    }
+
     private static string DefaultPort
         => Environment.Version.Major >= 8 ? "8080" : "5000";
 
@@ -70,5 +74,13 @@ internal static partial class Program
     }
 
     static async Task<int> GetAndValidate(this HttpClient client, Uri uri)
-        => await client.GetAsync(uri).ContinueWith(r => r.Result.IsSuccessStatusCode) ? 0 : 1;
+    {
+        var result = await client.GetAsync(uri).ContinueWith(r => r.Result);
+        if (result.IsSuccessStatusCode)
+            return 0;
+
+        Console.Error.WriteLine($"Failed GET {uri} : {result.StatusCode} {result.ReasonPhrase}");
+        return 1;
+    }
+
 }
