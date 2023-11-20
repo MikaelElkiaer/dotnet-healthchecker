@@ -5,12 +5,12 @@ services:
       dockerfile: docker/Dockerfile
       target: test-app
     environment:
-      - ASPNETCORE_URLS=${ENV_URLS}
-      - ASPNETCORE_HTTP_PORTS=${ENV_PORTS}
+      - ${ENV_PORTS:-NOOP1=}
+      - ${ENV_URLS:-NOOP2=}
     healthcheck:
       interval: 200ms
       retries: 10
-      test: ["CMD", "healthchecker", "${ARG_PATH}"]
+      test: ["CMD", "healthchecker", "${ARG_PATH:-}"]
       timeout: 500ms
       start_period: 1s
     image: dotnet-healthchecker
