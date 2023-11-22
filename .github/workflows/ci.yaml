@@ -99,7 +99,7 @@ jobs:
           if [ -n $PRERELEASE ]; then
             gh release view ${{ github.ref_name }} && gh release delete ${{ github.ref_name }} || true
           fi
-          gh release create ${{ github.ref_name }} --draft=true --generate-notes --latest=${LATEST} --pre-release=${PRERELEASE} $(ls assets/*)
+          gh release create ${{ github.ref_name }} --draft=true --generate-notes --latest=${LATEST} --prerelease=${PRERELEASE} $(ls assets/*)
           gh release view  --json body --jq '.body' > NOTES.md
           (<USAGE.md) >> NOTES.md
           gh release edit ${{ github.ref_name }} --draft=false --notes-file NOTES.md
