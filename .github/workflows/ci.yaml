@@ -32,18 +32,14 @@ jobs:
           TARGET_FRAMEWORK: ${{ matrix.targetFramework }}
         run: |
           docker compose build --build-arg RUNTIME=$RUNTIME --build-arg RUNTIME_IMAGE_SUFFIX=$RUNTIME_IMAGE_SUFFIX --build-arg TARGET_FRAMEWORK=$TARGET_FRAMEWORK
-          bats tests.bats --filter-tags "" --filter-tags "net${TARGET_FRAMEWORK/./}"
+          bats tests.bats
         working-directory: test
-      - name: Checksum
-        run: |
-          sha256sum ./release/healthchecker > ./release/healthchecker.sha256sum
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
           name: ${{ matrix.targetFramework }}-${{ matrix.runtime }}
           path: |
             ./release/healthchecker
-            ./release/healthchecker.sha256sum
   release:
     needs: build
     runs-on: ubuntu-latest
@@ -54,42 +50,56 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           path: releases
+      - name: Prepare assets
+        run: |
+          mkdir --parents ../assets
+          for r in *; do
+            cp $r/healthchecker ../assets/healthchecker-net${r/./}
+          done
+        working-directory: releases
+      - name: Checksum
+        run: |
+          sha256sum healthchecker* > healthchecker.sha256sum
+        working-directory: assets
       - name: Generate notes
         run: |
-          echo -e "# Release notes\n\n" >> $GITHUB_STEP_SUMMARY
+          echo -e "# Release notes\n" >> $GITHUB_STEP_SUMMARY
 
-          cat <<EOF | tee ../NOTES.md
+          cat <<EOF | tee ../USAGE.md
+
+          ## Usage
+
           See [readme](https://github.com/mikaelelkiaer/dotnet-healthchecker) for usage details.
 
           EOF
 
           for r in *; do
-          cat <<EOF | tee --append ../NOTES.md
+            CHECKSUM=$(awk "/${r}/ {print \$1}" < ../assets/healthchecker.sha256sum)
+            cat <<-EOF | tee --append ../USAGE.md
 
-          ## .NET $r
+            ### .NET ${r/healthchecker-/}
 
-          \`\`\`Dockerfile
-          ADD --checksum=sha256:$(cat ./$r/healthchecker.sha256sum | awk '{print $1}') https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/healthchecker-net${r/./} /healthchecker
-          \`\`\`
+            \`\`\`Dockerfile
+            ADD --checksum=sha256:${CHECKSUM} https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/${r} /usr/local/bin/healthchecker
+            RUN chmod +rx /usr/local/bin/healthchecker
+            HEALTHCHECK CMD healthchecker
+            \`\`\`
           EOF
           done
 
-          cat ../NOTES.md >> $GITHUB_STEP_SUMMARY
-        working-directory: releases
-      - name: Prepare assets
-        run: |
-          mkdir -p ../assets
-          for r in *; do
-            cp $r/healthchecker ../assets/healthchecker-net${r/./}
-            cp $r/healthchecker.sha256sum ../assets/healthchecker-net${r/./}.sha256sum
-          done
-
-          cd ../assets
-          echo -e "# Assets\n\n$(ls -l *)" >> $GITHUB_STEP_SUMMARY
+          cat ../USAGE.md >> $GITHUB_STEP_SUMMARY
         working-directory: releases
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
-        if: github.ref_type == 'tag'
+          LATEST: ${{ github.ref_type == 'tag' && 'true' || 'false' }}
+          PRERELEASE: ${{ github.ref_type == 'tag' && 'false' || 'true' }}
+        if: github.ref_type == 'tag' || github.ref_name == 'main'
         run: |
-          gh release create ${{ github.ref_name }} --notes-file NOTES.md $(ls assets/*)
+          if [ -n $PRERELEASE ]; then
+            gh release view ${{ github.ref_name }} && gh release delete ${{ github.ref_name }} || true
+          fi
+          gh release create ${{ github.ref_name }} --draft=true --generate-notes --latest=${LATEST} --pre-release=${PRERELEASE} $(ls assets/*)
+          gh release view  --json body --jq '.body' > NOTES.md
+          (<USAGE.md) >> NOTES.md
+          gh release edit ${{ github.ref_name }} --draft=false --notes-file NOTES.md
