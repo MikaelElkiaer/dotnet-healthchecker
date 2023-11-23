@@ -2,7 +2,7 @@ ARG RUNTIME=linux-musl-x64
 ARG RUNTIME_IMAGE_SUFFIX=-alpine
 ARG TARGET_FRAMEWORK=8.0
 
-FROM mcr.microsoft.com/dotnet/sdk:${TARGET_FRAMEWORK}-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
 ARG RUNTIME
 ARG TARGET_FRAMEWORK
 WORKDIR /src
@@ -14,7 +14,7 @@ RUN dotnet publish --configuration Release --no-restore --output /out -p:Runtime
 FROM scratch AS output
 COPY --from=build /out /
 
-FROM mcr.microsoft.com/dotnet/sdk:${TARGET_FRAMEWORK}-alpine AS test-app-build
+FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS test-app-build
 ARG TARGET_FRAMEWORK
 WORKDIR /src
 COPY test/aspnet-app/*.csproj .
@@ -22,7 +22,7 @@ RUN dotnet restore -p:TargetFramework=net${TARGET_FRAMEWORK}
 COPY test/aspnet-app .
 RUN dotnet publish --configuration Release --no-restore --output /out /p:TargetFramework=net${TARGET_FRAMEWORK}
 
-FROM mcr.microsoft.com/dotnet/aspnet:${TARGET_FRAMEWORK}${RUNTIME_IMAGE_SUFFIX} AS test-app
+FROM mcr.microsoft.com/dotnet/aspnet:8.0${RUNTIME_IMAGE_SUFFIX} AS test-app
 WORKDIR /app
 COPY --from=build /out/healthchecker /usr/local/bin/healthchecker
 COPY --from=test-app-build /out .
