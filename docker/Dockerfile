@@ -23,6 +23,9 @@ COPY test/aspnet-app .
 RUN dotnet publish --configuration Release --framework net${TARGET_FRAMEWORK} --no-restore --output /out
 
 FROM mcr.microsoft.com/dotnet/aspnet:${TARGET_FRAMEWORK}${RUNTIME_IMAGE_SUFFIX} AS test-app
+RUN (which apk &> /dev/null && apk add curl wget) \
+    || (which apt-get &> /dev/null && apt-get update && apt-get install --yes curl wget) \
+    || true
 WORKDIR /app
 COPY --from=build /out/healthchecker /usr/local/bin/healthchecker
 COPY --from=test-app-build /out .
