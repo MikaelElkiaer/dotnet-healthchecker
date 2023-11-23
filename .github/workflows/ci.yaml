@@ -39,21 +39,21 @@ jobs:
           sudo apt install hyperfine
       - name: Performance
         run: |
-          docker compose up --detach app
+          ENV_URLS="ASPNETCORE_URLS=http://+:8081" docker compose up --detach app
           hyperfine --export-markdown config-comparison.md \
             'docker compose exec app healthchecker' \
             'docker compose exec app healthchecker /healthz' \
-            'docker compose exec app healthchecker http://localhost:8080/healthz' \
-            'docker compose exec -e ASPNETCORE_URLS=http://+:8080 app healthchecker /healthz' \
-            'docker compose exec -e ASPNETCORE_HTTP_PORTS=8080 app healthchecker /healthz' \
-            'docker compose exec -e ASPNETCORE_URLS=http://+:8080 app healthchecker' \
-            'docker compose exec -e ASPNETCORE_HTTP_PORTS=8080 app healthchecker' \
-            'docker compose exec -e ASPNETCORE_URLS="http://+:8080;http://+:80" app healthchecker' \
-            'docker compose exec -e ASPNETCORE_HTTP_PORTS="8080;80" app healthchecker'
+            'docker compose exec app healthchecker http://localhost:8081/healthz' \
+            'docker compose exec -e ASPNETCORE_URLS=http://+:8081 app healthchecker /healthz' \
+            'docker compose exec -e ASPNETCORE_HTTP_PORTS=8081 app healthchecker /healthz' \
+            'docker compose exec -e ASPNETCORE_URLS=http://+:8081 app healthchecker' \
+            'docker compose exec -e ASPNETCORE_HTTP_PORTS=8081 app healthchecker' \
+            'docker compose exec -e ASPNETCORE_URLS="http://+:8081;http://+:81" app healthchecker' \
+            'docker compose exec -e ASPNETCORE_HTTP_PORTS="8081;81" app healthchecker'
           hyperfine --export-markdown tool-comparison.md \
             'docker compose exec app healthchecker' \
-            'docker compose exec app curl --silent http://localhost:8080/healthz' \
-            'docker compose exec app wget -O - --quiet http://localhost:8080/healthz'
+            'docker compose exec app curl --silent http://localhost:8081/healthz' \
+            'docker compose exec app wget -O - --quiet http://localhost:8081/healthz'
 
           echo -e "# Performance" >> $GITHUB_STEP_SUMMARY
           echo -e "\n\n## Config comparison\n\n" >> $GITHUB_STEP_SUMMARY
