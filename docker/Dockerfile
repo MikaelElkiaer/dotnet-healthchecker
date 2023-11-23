@@ -7,9 +7,9 @@ ARG RUNTIME
 ARG TARGET_FRAMEWORK
 WORKDIR /src
 COPY src/*.csproj .
-RUN dotnet restore -p:RuntimeIdentifier=${RUNTIME} -p:TargetFramework=net${TARGET_FRAMEWORK}
+RUN dotnet restore -p:RuntimeIdentifier=${RUNTIME}
 COPY src .
-RUN dotnet publish --configuration Release --no-restore --output /out -p:RuntimeIdentifier=${RUNTIME} -p:TargetFramework=net${TARGET_FRAMEWORK}
+RUN dotnet publish --configuration Release --framework net${TARGET_FRAMEWORK} --no-restore --output /out --runtime ${RUNTIME}
 
 FROM scratch AS output
 COPY --from=build /out /
@@ -18,9 +18,9 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS test-app-build
 ARG TARGET_FRAMEWORK
 WORKDIR /src
 COPY test/aspnet-app/*.csproj .
-RUN dotnet restore -p:TargetFramework=net${TARGET_FRAMEWORK}
+RUN dotnet restore
 COPY test/aspnet-app .
-RUN dotnet publish --configuration Release --no-restore --output /out /p:TargetFramework=net${TARGET_FRAMEWORK}
+RUN dotnet publish --configuration Release --framework net${TARGET_FRAMEWORK} --no-restore --output /out
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0${RUNTIME_IMAGE_SUFFIX} AS test-app
 WORKDIR /app
