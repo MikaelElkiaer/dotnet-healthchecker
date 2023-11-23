@@ -33,7 +33,7 @@ jobs:
           TARGET_FRAMEWORK: ${{ matrix.targetFramework }}
         run: |
           docker compose build --build-arg RUNTIME=$RUNTIME --build-arg RUNTIME_IMAGE_SUFFIX=$RUNTIME_IMAGE_SUFFIX --build-arg TARGET_FRAMEWORK=$TARGET_FRAMEWORK
-          bats tests.bats
+          bats tests.bats --filter-tags "" --filter-tags "net${TARGET_FRAMEWORK/./}"
         working-directory: test
       - name: Upload artifact
         uses: actions/upload-artifact@v3

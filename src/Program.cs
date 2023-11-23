@@ -5,10 +5,8 @@ internal static partial class Program
         Uri? uri = null;
         try
         {
-            if (TryConstructUri(args, out uri))
-                return await CreateHttpClient().GetAndValidate(uri);
-            else
-                Console.Error.WriteLine("A valid URI could not be constructed");
+            uri = ConstructUri(args);
+            return await CreateHttpClient().GetAndValidate(uri);
         }
         catch (Exception ex)
         {
@@ -22,39 +20,35 @@ internal static partial class Program
         return 1;
     }
 
-    private static bool TryConstructUri(string[] args, out Uri uri)
+    private static Uri ConstructUri(string[] args)
     {
-        if (TryGetUri(args, out Uri pathUri) && pathUri.IsAbsoluteUri)
-            uri = pathUri;
-        else
+        var pathUri = GetPathUri(args);
+
+        if (pathUri.IsAbsoluteUri)
+            return pathUri;
+
+        var baseUri = Environment.GetEnvironmentVariable("ASPNETCORE_URLS")?
+            .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(u => Uri.TryCreate(System.Text.RegularExpressions.Regex.Replace(u, @"[+%]+", "localhost"), UriKind.Absolute, out var uri) ? uri : null)
+            .FirstOrDefault(u => u is not null && u.Scheme == "http");
+
+        if (baseUri is null)
         {
-            var baseUri = Environment.GetEnvironmentVariable("ASPNETCORE_URLS")?
-                .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .Select(u => Uri.TryCreate(System.Text.RegularExpressions.Regex.Replace(u, @"[+%]+", "localhost"), UriKind.Absolute, out var uri) ? uri : null)
-                .FirstOrDefault(u => u is not null && u.Scheme == "http");
-
-            if (baseUri is null)
-            {
-                var port = Environment.GetEnvironmentVariable("ASPNETCORE_HTTP_PORTS")?
-                  .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                  .FirstOrDefault();
-                baseUri = DefaultBaseUri(port ?? DefaultPort);
-            }
-
-            return Uri.TryCreate(baseUri, pathUri, out uri!);
+            var port = Environment.GetEnvironmentVariable("ASPNETCORE_HTTP_PORTS")?
+              .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+              .FirstOrDefault();
+            baseUri = DefaultBaseUri(port ?? DefaultPort);
         }
 
-        return true;
+        return new Uri(baseUri, pathUri);
     }
 
-    private static bool TryGetUri(string[] args, out Uri uri)
+    private static Uri GetPathUri(string[] args)
     {
-        if (args.Length > 0 && !string.IsNullOrWhiteSpace(args[0]) && !Uri.TryCreate(args[0], UriKind.RelativeOrAbsolute, out uri!))
-            return false;
-        else
-            uri = DefaultPath;
+        if (args.Length == 0 || string.IsNullOrWhiteSpace(args[0]))
+            return DefaultPath;
 
-        return true;
+        return new Uri(args[0], UriKind.RelativeOrAbsolute);
     }
 
     private static string DefaultPort
@@ -79,7 +73,7 @@ internal static partial class Program
         if (result.IsSuccessStatusCode)
             return 0;
 
-        Console.Error.WriteLine($"Failed GET {uri} : {result.StatusCode} {result.ReasonPhrase}");
+        Console.Error.WriteLine($"Failed GET {uri} : {(int)result.StatusCode} {result.ReasonPhrase}");
         return 1;
     }
 
