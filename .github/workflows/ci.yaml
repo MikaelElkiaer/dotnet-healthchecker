@@ -103,11 +103,11 @@ jobs:
 
           EOF
 
-          for r in *; do
+          for r in healthchecker-*; do
             CHECKSUM=$(awk "/${r}/ {print \$1}" < ../assets/healthchecker.sha256sum)
             cat <<-EOF | tee --append ../USAGE.md
 
-            ### .NET ${r/healthchecker-/}
+            ### ${r/healthchecker-/}
 
             \`\`\`Dockerfile
             ADD --checksum=sha256:${CHECKSUM} https://github.com/mikaelelkiaer/dotnet-healthchecker/releases/download/${{ github.ref_name }}/${r} /usr/local/bin/healthchecker
@@ -118,7 +118,7 @@ jobs:
           done
 
           cat ../USAGE.md >> $GITHUB_STEP_SUMMARY
-        working-directory: releases
+        working-directory: assets
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
