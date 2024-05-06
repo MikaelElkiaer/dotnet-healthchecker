@@ -25,13 +25,18 @@ jobs:
           docker build --build-arg RUNTIME=${{ matrix.runtime }} --build-arg TARGET_FRAMEWORK=${{ matrix.targetFramework }} --file docker/Dockerfile --output ./release --target output .
       - name: Install bats
         run: |
+          mkdir ~/.npm-global
+          npm config set prefix ~/.npm-global
+          export PATH=~/.npm-global/bin:$PATH
           npm install --global bats
+          bats --version
       - name: Test
         env:
           RUNTIME: ${{ matrix.runtime }}
           RUNTIME_IMAGE_SUFFIX: ${{ matrix.runtime == 'linux-musl-x64' && '-alpine' || '' }}
           TARGET_FRAMEWORK: ${{ matrix.targetFramework }}
         run: |
+          export PATH=~/.npm-global/bin:$PATH
           docker compose build --build-arg RUNTIME=$RUNTIME --build-arg RUNTIME_IMAGE_SUFFIX=$RUNTIME_IMAGE_SUFFIX --build-arg TARGET_FRAMEWORK=$TARGET_FRAMEWORK
           bats tests.bats --filter-tags "" --filter-tags "net${TARGET_FRAMEWORK/./}"
         working-directory: test
@@ -41,7 +46,7 @@ jobs:
       - name: Performance
         run: |
           ENV_URLS="ASPNETCORE_URLS=http://+:8081" docker compose up --detach app
-          hyperfine --export-markdown config-comparison.md \
+          hyperfine --warmup 10 --export-markdown config-comparison.md \
             'docker compose exec app healthchecker' \
             'docker compose exec app healthchecker /healthz' \
             'docker compose exec app healthchecker http://localhost:8081/healthz' \
@@ -51,7 +56,7 @@ jobs:
             'docker compose exec -e ASPNETCORE_HTTP_PORTS=8081 app healthchecker' \
             'docker compose exec -e ASPNETCORE_URLS="http://+:8081;http://+:81" app healthchecker' \
             'docker compose exec -e ASPNETCORE_HTTP_PORTS="8081;81" app healthchecker'
-          hyperfine --export-markdown tool-comparison.md \
+          hyperfine --warmup 10 --export-markdown tool-comparison.md \
             'docker compose exec app healthchecker' \
             'docker compose exec app curl --silent http://localhost:8081/healthz' \
             'docker compose exec app wget -O - --quiet http://localhost:8081/healthz'
