@@ -2,7 +2,7 @@ ARG RUNTIME=linux-musl-x64
 ARG RUNTIME_IMAGE_SUFFIX=-alpine
 ARG TARGET_FRAMEWORK=8.0
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS build
 ARG RUNTIME
 ARG TARGET_FRAMEWORK
 WORKDIR /src
@@ -14,7 +14,7 @@ RUN dotnet publish --configuration Release --framework net${TARGET_FRAMEWORK} --
 FROM scratch AS output
 COPY --from=build /out /
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS test-app-build
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS test-app-build
 ARG TARGET_FRAMEWORK
 WORKDIR /src
 COPY test/aspnet-app/*.csproj .
